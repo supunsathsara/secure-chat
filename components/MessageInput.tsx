@@ -7,80 +7,83 @@ import { Textarea } from "./ui/textarea";
 import { z } from "zod";
 import { encryptMessage, generateMessageDigest } from "@/lib/crypto";
 import { createClient } from "@/utils/supabase/client";
+import SubmitButton from "./SubmitButton";
+import { sendMessage } from "@/lib/actions";
 
 const messageSchema = z
   .string()
   .min(1, { message: "Message cannot be empty" })
   .max(500, { message: "Message cannot exceed 500 characters" });
 
-const MessageInput = ({ userId, receiverId }: any) => {
-  const [message, setMessage] = useState<string>("");
-  const [error, setError] = useState<string | null>(null);
-
-  const handleMessageChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setMessage(e.target.value);
-  };
-
-  const supabase = createClient();
-  const handleSendMessage = async () => {
-    try {
-      // Validate the message
-      messageSchema.parse(message);
-
-      const encryptedMessage = encryptMessage(message);
-
-      // Generate message digest
-      const digest = generateMessageDigest(message);
-
-      // Send the encrypted message and digest to Supabase
-      const { error } = await supabase.from("messages").insert([
-        {
-          sender_id: userId,
-          receiver_id: receiverId,
-          encrypted_message: encryptedMessage,
-          message_digest: digest,
-        },
-      ]);
-
-      if (error) {
-        throw new Error("Failed to send message");
+  const MessageInput = ({ userId, receiverId }: any) => {
+    const [message, setMessage] = useState<string>("");
+    const [error, setError] = useState<string | null>(null);
+  
+    const handleMessageChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      setMessage(e.target.value);
+    };
+  
+        const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        // Validate
+        const result = messageSchema.safeParse(message);
+        if (!result.success) {
+          const errorMessage = result.error.errors[0]?.message || "Invalid message";
+          setError(errorMessage);
+          return;
+        }
+    
+        sendMessageHandler();
       }
-
-      // Clear the input field after sending
-      setMessage("");
-
-      //refresh the page
-        window.location.reload();
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        setError(err.errors[0].message);
-      } else {
-        setError("An error occurred while sending the message");
+    };
+    
+    const handleSendMessage = async () => {
+      // Validate
+      const result = messageSchema.safeParse(message);
+      if (!result.success) {
+        const errorMessage = result.error.errors[0]?.message || "Invalid message";
+        setError(errorMessage);
+        return;
       }
-    }
+    
+      sendMessageHandler();
+    };
+    
+    const sendMessageHandler = async () => {
+      try {
+        await sendMessage(message, receiverId);
+        setMessage("");
+        setError(null); // Clear any previous errors
+      } catch (err) {
+        setError("Failed to send message");
+      }
+    };
+  
+    return (
+      <div className="relative">
+        <Textarea
+          placeholder="Type your message..."
+          className="rounded-2xl pr-16 resize-none"
+          name="message"
+          rows={1}
+          value={message}
+          onChange={handleMessageChange}
+          onKeyDown={handleKeyDown}
+        />
+        <SubmitButton
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="absolute right-3 top-1/2 -translate-y-1/2"
+          onClick={handleSendMessage}
+          pendingText=".."
+        >
+          <SendIcon className="w-5 h-5" />
+        </SubmitButton>
+        {error && <div className="text-red-500 text-sm mt-1">{error}</div>}
+      </div>
+    );
   };
-
-  return (
-    <div className="relative">
-      <Textarea
-        placeholder="Type your message..."
-        className="rounded-2xl pr-16 resize-none"
-        rows={1}
-        value={message}
-        onChange={handleMessageChange}
-      />
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        className="absolute right-3 top-1/2 -translate-y-1/2"
-        onClick={handleSendMessage}
-      >
-        <SendIcon className="w-5 h-5" />
-      </Button>
-      {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
-    </div>
-  );
-};
 
 export default MessageInput;
