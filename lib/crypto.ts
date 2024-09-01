@@ -5,6 +5,7 @@ const secretKey = '123secret';
 const key = crypto.createHash('sha256').update(secretKey).digest();
 const iv = crypto.randomBytes(16);
 
+// Encrypts a message using AES-256-CBC
 export function encryptMessage(message: string): string {
   const cipher = crypto.createCipheriv(algorithm, key, iv);
   let encrypted = cipher.update(message, 'utf8', 'hex');
@@ -12,6 +13,7 @@ export function encryptMessage(message: string): string {
   return iv.toString('hex') + ':' + encrypted;
 }
 
+// Decrypts a message using AES-256-CBC
 export function decryptMessage(encryptedMessage: string): string {
   const parts = encryptedMessage.split(':');
   if (parts.length !== 2) {
@@ -25,10 +27,12 @@ export function decryptMessage(encryptedMessage: string): string {
   return decrypted;
 }
 
+// Generates a message digest using SHA-256
 export function generateMessageDigest(message: string): string {
   return crypto.createHash('sha256').update(message).digest('hex');
 }
 
+// Verifies a message digest
 export function verifyMessage(message: string, digest: string): boolean {
   const messageDigest = generateMessageDigest(message);
   return messageDigest === digest;

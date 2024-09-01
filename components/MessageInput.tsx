@@ -1,14 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { SendIcon } from "lucide-react";
-import { Button } from "./ui/button";
-import { Textarea } from "./ui/textarea";
-import { z } from "zod";
-import { encryptMessage, generateMessageDigest } from "@/lib/crypto";
-import { createClient } from "@/utils/supabase/client";
-import SubmitButton from "./SubmitButton";
 import { sendMessage } from "@/lib/actions";
+import { SendIcon } from "lucide-react";
+import { useState } from "react";
+import { z } from "zod";
+import SubmitButton from "./SubmitButton";
+import { Textarea } from "./ui/textarea";
 
 const messageSchema = z
   .string()
